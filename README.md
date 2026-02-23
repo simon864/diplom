@@ -7,11 +7,11 @@ cd billiard-trainer
 2. Установите зависимости
 
 npm install
-# или
+или
 yarn install
 
 
 3.Запустите приложение
 npm run dev
-# или
+или
 yarn dev
