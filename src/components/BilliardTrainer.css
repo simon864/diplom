@@ -311,7 +311,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: #2d5a27;
+  background: #030403;
 }
 
 .markings {
@@ -601,6 +601,8 @@ body {
 .modal-button.confirm:hover {
   background: #0056b3;
 }
+
+
 
 @keyframes fadeIn {
   from {

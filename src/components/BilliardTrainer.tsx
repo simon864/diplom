@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './BilliardTrainer.css';
+import tableImage from '../assets/images/table.jpg';
 
 interface Point {
   x: number;
@@ -420,35 +421,26 @@ const BilliardTrainer: React.FC = () => {
           </button>
         </div>
 
-        <div className="content">
-          <div className="table-wrapper">
-            <div
-              ref={tableRef}
-              className="table"
-              style={{
-                width: TABLE_WIDTH,
-                height: TABLE_HEIGHT
-              }}
-              onMouseDown={handleTableMouseDown}
-              onMouseMove={handleTableMouseMove}
-              onMouseUp={handleTableMouseUp}
-              onMouseLeave={handleTableMouseUp}
-            >
-              <div className="table-cloth"></div>
+<div className="table-container">
+  <div className="table-wrapper">
+    <div
+      ref={tableRef}
+      className="table"
+      style={{
+        width: TABLE_WIDTH,
+        height: TABLE_HEIGHT,
+        backgroundImage: `url(${tableImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        position: 'relative'
+      }}
+      onMouseDown={handleTableMouseDown}
+      onMouseMove={handleTableMouseMove}
+      onMouseUp={handleTableMouseUp}
+      onMouseLeave={handleTableMouseUp}
+    >
               
-              <div className="markings">
-                <div className="center-line"></div>
-                <div className="center-dot"></div>
-              </div>
-              
-              <div className="pockets">
-                <div className="pocket top-left"></div>
-                <div className="pocket top-right"></div>
-                <div className="pocket middle-left"></div>
-                <div className="pocket middle-right"></div>
-                <div className="pocket bottom-left"></div>
-                <div className="pocket bottom-right"></div>
-              </div>
+
               
               {balls.map(ball => (
                 <div
