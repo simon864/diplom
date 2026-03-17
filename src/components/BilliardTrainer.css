@@ -33,25 +33,35 @@ body {
   color: #333;
 }
 
-.save-button {
-  background: #007AFF;
-  color: white;
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.nav {
+  display: flex;
+  gap: 8px;
+  margin-left: 24px;
+}
+
+.nav-button {
+  padding: 6px 12px;
   border: none;
-  padding: 8px 16px;
+  background: transparent;
   border-radius: 6px;
   font-size: 14px;
-  font-weight: 500;
+  color: #666;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
-.save-button:hover:not(:disabled) {
-  background: #0056b3;
+.nav-button:hover {
+  background: #f0f0f0;
 }
 
-.save-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.nav-button.active {
+  background: #007AFF;
+  color: white;
 }
 
 .main {
@@ -64,30 +74,79 @@ body {
   width: 100%;
 }
 
+/* Стили для боковой панели */
 .sidebar {
-  width: 260px;
+  width: 300px;
   flex-shrink: 0;
   background: white;
   border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   height: fit-content;
   position: sticky;
   top: 88px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+}
+
+.section {
+  margin-bottom: 8px;
 }
 
 .section h3 {
   font-size: 14px;
   font-weight: 600;
-  color: #666;
-  margin-bottom: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+  color: #333;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
 }
 
+.required {
+  color: #ff3b30;
+  font-size: 14px;
+  margin-left: 4px;
+}
+
+/* Стили для инпутов */
+.text-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s;
+  background: #fafafa;
+}
+
+.text-input:hover {
+  border-color: #b0b0b0;
+  background: white;
+}
+
+.text-input:focus {
+  outline: none;
+  border-color: #007AFF;
+  background: white;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
+}
+
+.text-input::placeholder {
+  color: #aaa;
+  font-size: 13px;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+/* Стили для групп кнопок */
 .button-group {
   display: flex;
   flex-direction: column;
@@ -111,6 +170,7 @@ body {
 
 .button:hover {
   background: #f0f0f0;
+  border-color: #d0d0d0;
 }
 
 .button.active {
@@ -124,13 +184,7 @@ body {
   background: white;
 }
 
-.mode-hint {
-  font-size: 12px;
-  color: #007AFF;
-  margin-top: 4px;
-  padding-left: 4px;
-}
-
+/* Индикаторы для шаров */
 .ball-indicator {
   width: 20px;
   height: 20px;
@@ -147,9 +201,9 @@ body {
 .ball-indicator.dashed {
   background: transparent;
   border: 2px dashed #666;
-  box-shadow: none;
 }
 
+/* Индикаторы для линий */
 .line-indicator {
   width: 20px;
   height: 2px;
@@ -164,38 +218,65 @@ body {
   background: repeating-linear-gradient(90deg, #333, #333 4px, transparent 4px, transparent 8px);
 }
 
-.power-slider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* Подсказка режима */
+.mode-hint {
+  font-size: 12px;
+  color: #007AFF;
+  margin-top: 6px;
+  padding-left: 4px;
+  font-style: italic;
 }
 
-.slider {
-  flex: 1;
-  height: 4px;
-  -webkit-appearance: none;
-  background: #eaeaea;
-  border-radius: 2px;
+/* Стили для кнопок силы удара */
+.power-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
-.slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
-  background: #007AFF;
-  border-radius: 50%;
-  cursor: pointer;
-  border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.power-value {
+.power-button {
+  padding: 10px 0;
+  border: 1px solid #ddd;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  min-width: 40px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+  background: #f8f8f8;
 }
 
+.power-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.power-button.selected {
+  border-width: 2px;
+  font-weight: 700;
+}
+
+/* Кнопка сброса */
+.clear-small-button {
+  background: none;
+  border: 1px solid #ddd;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  margin-top: 8px;
+  width: 100%;
+  transition: all 0.2s;
+}
+
+.clear-small-button:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+/* Стили для винта */
 .spin-area {
   display: flex;
   flex-direction: column;
@@ -211,6 +292,12 @@ body {
   border: 2px solid #eaeaea;
   position: relative;
   cursor: crosshair;
+  transition: all 0.2s;
+}
+
+.spin-circle:hover {
+  border-color: #007AFF;
+  box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
 }
 
 .spin-grid {
@@ -248,37 +335,87 @@ body {
   border-radius: 50%;
   transform: translate(-50%, -50%);
   border: 2px solid white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   pointer-events: none;
   transition: all 0.1s;
+  z-index: 5;
 }
 
 .spin-coords {
   font-family: monospace;
-  font-size: 14px;
+  font-size: 12px;
   color: #666;
   background: #f8f8f8;
   padding: 4px 8px;
   border-radius: 4px;
 }
 
+/* Стили для кнопок действий */
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+  border-top: 1px solid #eaeaea;
+  padding-top: 16px;
+}
+
 .clear-button {
-  background: transparent;
-  border: 1px solid #eaeaea;
-  padding: 10px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  padding: 12px;
   border-radius: 8px;
   font-size: 14px;
+  font-weight: 500;
   color: #666;
   cursor: pointer;
-  margin-top: auto;
   transition: all 0.2s;
+  flex: 1;
 }
 
 .clear-button:hover {
-  background: #f8f8f8;
-  color: #333;
+  background: #e0e0e0;
+  border-color: #999;
 }
 
+.save-button {
+  background: #34C759;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex: 2;
+}
+
+.save-button:hover:not(:disabled) {
+  background: #2b9a48;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(52, 199, 89, 0.3);
+}
+
+.save-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #aaa;
+}
+
+/* Подсказка о выбранном элементе */
+.selected-hint {
+  margin-top: 12px;
+  padding: 10px;
+  background: #e8f0fe;
+  border: 1px solid #007AFF;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #007AFF;
+  text-align: center;
+  animation: fadeIn 0.3s;
+}
+
+/* Контентная область */
 .content {
   flex: 1;
   display: flex;
@@ -296,128 +433,76 @@ body {
   display: inline-block;
 }
 
+/* Стили для стола */
 .table {
   position: relative;
-  background: #2d5a27;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: inset 0 0 0 2px #8b5a2b, 0 8px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   cursor: crosshair;
-  display: block;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+  user-select: none;
 }
 
-.table-cloth {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #030403;
-}
-
-.markings {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.center-line {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateX(-50%);
-}
-
-.center-dot {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 4px;
-  height: 4px;
-  background: rgba(255, 255, 255, 0.5);
-  border-radius: 50%;
-}
-
-.pockets {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.pocket {
-  position: absolute;
-  width: 40px;
-  height: 40px;
-  background: #1a1a1a;
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  border: 2px solid #8b5a2b;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-  z-index: 2;
-}
-
-.pocket::after {
+.table::before {
   content: '';
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 24px;
-  height: 24px;
-  background: #333;
-  border-radius: 50%;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.02);
+  pointer-events: none;
+  z-index: 1;
 }
 
-/* Угловые лузы */
-.pocket.top-left { top: 0; left: 0; }
-.pocket.top-right { top: 0; left: 100%; }
-.pocket.bottom-left { top: 100%; left: 0; }
-.pocket.bottom-right { top: 100%; left: 100%; }
-
-/* Средние лузы */
-.pocket.middle-left { top: 50%; left: 0; }
-.pocket.middle-right { top: 50%; left: 100%; }
-
+/* Стили для шаров */
 .ball {
   position: absolute;
   border-radius: 50%;
   cursor: grab;
   user-select: none;
-  transition: box-shadow 0.2s;
+  transition: box-shadow 0.2s, transform 0.1s;
   will-change: transform;
   z-index: 10;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3), inset -2px -2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .ball.solid {
   background: white;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), inset -2px -2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .ball.dashed {
   background: transparent;
   border: 2px dashed rgba(255, 255, 255, 0.9);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .ball.dragging {
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 0 2px #007AFF;
+  transform: scale(1.1);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4), 0 0 0 2px #007AFF;
   cursor: grabbing;
   z-index: 100;
+  transition: none;
 }
 
-.ball.dashed.dragging {
-  border: 2px dashed #007AFF;
+.ball.selected {
+  box-shadow: 0 0 0 3px #007AFF, 0 4px 12px rgba(0, 0, 0, 0.4);
+  z-index: 50;
 }
 
+.ball.dashed.selected {
+  border-color: #007AFF;
+}
+
+.ball:hover:not(.dragging) {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* Стили для линий */
 .lines {
   position: absolute;
   top: 0;
@@ -429,19 +514,29 @@ body {
 }
 
 .line {
-  stroke: #fff;
-  stroke-width: 2;
+  stroke: #ffd700;
+  stroke-width: 3;
   stroke-linecap: round;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+  transition: stroke-width 0.2s, stroke 0.2s;
 }
 
 .line.dashed {
-  stroke-dasharray: 8 8;
+  stroke-dasharray: 12 12;
 }
 
 .line.preview {
   opacity: 0.5;
+  stroke-dasharray: 8 8;
 }
 
+.line.selected {
+  stroke: #007AFF;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 5px #007AFF);
+}
+
+/* Стили для уведомлений */
 .notification {
   position: fixed;
   bottom: 24px;
@@ -453,6 +548,7 @@ body {
   color: white;
   animation: slideUp 0.3s;
   z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .notification.success {
@@ -474,7 +570,17 @@ body {
   }
 }
 
-@media (max-width: 1024px) {
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Адаптивность */
+@media (max-width: 1200px) {
   .main {
     flex-direction: column;
   }
@@ -482,6 +588,7 @@ body {
   .sidebar {
     width: 100%;
     position: static;
+    max-height: none;
   }
 
   .table-wrapper {
@@ -494,121 +601,83 @@ body {
   }
 }
 
-.nav {
-  display: flex;
-  gap: 8px;
-  margin-left: 24px;
+@media (max-width: 768px) {
+  .header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .header-left {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .nav {
+    margin-left: 0;
+  }
+
+  .power-buttons-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
-.nav-button {
-  padding: 6px 12px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #666;
-  cursor: pointer;
-  transition: all 0.2s;
+.textarea {
+  resize: none; /* Запрещаем изменение размера */
+  min-height: 80px;
+  line-height: 1.5;
 }
 
-.nav-button:hover {
-  background: #f0f0f0;
+/* Добавить в конец файла */
+
+/* Стили для кнопки удаления элемента */
+.selected-element-actions {
+  margin-top: 12px;
+  padding: 12px;
+  background: #e8f0fe;
+  border: 1px solid #007AFF;
+  border-radius: 8px;
+  text-align: center;
 }
 
-.nav-button.active {
-  background: #007AFF;
+.selected-element-actions p {
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: #007AFF;
+}
+
+.delete-element-button {
+  background: #ff3b30;
   color: white;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-}
-
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
-  animation: fadeIn 0.2s;
-}
-
-.modal {
-  background: white;
-  border-radius: 12px;
-  padding: 24px;
-  width: 400px;
-  max-width: 90vw;
-  animation: slideUp 0.3s;
-}
-
-.modal h2 {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  margin-bottom: 20px;
-}
-
-.modal-input {
+  gap: 6px;
   width: 100%;
-  padding: 12px;
-  border: 1px solid #eaeaea;
-  border-radius: 8px;
-  font-size: 16px;
-  margin-bottom: 20px;
+  transition: background 0.2s;
 }
 
-.modal-input:focus {
-  outline: none;
-  border-color: #007AFF;
+.delete-element-button:hover {
+  background: #d32f2f;
 }
 
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+/* Белые линии */
+.line {
+  stroke: #ffffff;
+  stroke-width: 3;
+  stroke-linecap: round;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+  transition: stroke-width 0.2s, stroke 0.2s;
 }
 
-.modal-button {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.modal-button.cancel {
-  background: #f0f0f0;
-  color: #666;
-}
-
-.modal-button.cancel:hover {
-  background: #e0e0e0;
-}
-
-.modal-button.confirm {
-  background: #007AFF;
-  color: white;
-}
-
-.modal-button.confirm:hover {
-  background: #0056b3;
-}
-
-
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.line.selected {
+  stroke: #007AFF;
+  stroke-width: 4;
+  filter: drop-shadow(0 0 5px #007AFF);
 }

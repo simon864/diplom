@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TrainingPage.css';
-import tableImage from '../assets/images/table.jpg';
+import tableImg from '../assets/images/table.jpg'
 
 interface Point {
   x: number;
@@ -10,20 +10,23 @@ interface Point {
 
 interface Exercise {
   id: number;
-  name: string;
-  layout: {
-    spin: { x: number; y: number };
+  title: string;
+  description: string;
+  position: {
     balls: Array<{ x: number; y: number; type: string }>;
     lines: Array<{ from: Point; to: Point; type: string }>;
-};
-power: number;
+    spin?: { x: number; y: number };
+    power?: number;
+  };
   created_at: string;
+  updated_at: string;
 }
 
 interface Training {
   id: string;
   name: string;
-  exercises: Exercise[];
+  exerciseIds: number[];
+  exercises?: Exercise[];
   created_at: string;
 }
 
@@ -37,14 +40,16 @@ const TrainingPage: React.FC = () => {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [trainingName, setTrainingName] = useState('');
   const [selectedTraining, setSelectedTraining] = useState<Training | null>(null);
+  const [currentExercise, setCurrentExercise] = useState<Exercise | null>(null);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState(0);
   const [score, setScore] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const TABLE_WIDTH = 900;
-  const TABLE_HEIGHT = 450;
-  const BALL_RADIUS = 14;
+  const TABLE_SCALE = 4;
+  const TABLE_WIDTH = 185 * TABLE_SCALE;
+  const TABLE_HEIGHT = 92 * TABLE_SCALE;
+  const BALL_RADIUS = (4 * TABLE_SCALE) / 2;
 
   useEffect(() => {
     loadExercises();
@@ -63,15 +68,13 @@ const TrainingPage: React.FC = () => {
   const loadExercises = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/positions`);
+      const response = await fetch(`${API_BASE_URL}/exercises`);
       const data = await response.json();
       
-      if (data.ok && data.positions) {
-        const exercisesWithNames = data.positions.map((ex: any) => ({
-          ...ex,
-          name: ex.name || 'Без названия'
-        }));
-        setExercises(exercisesWithNames);
+      if (data.ok && data.exercises) {
+        setExercises(data.exercises);
+      } else if (Array.isArray(data)) {
+        setExercises(data);
       }
     } catch (error) {
       console.error('Error loading exercises:', error);
@@ -81,6 +84,21 @@ const TrainingPage: React.FC = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const loadExerciseById = async (id: number): Promise<Exercise | null> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/exercises/${id}`);
+      const data = await response.json();
+      
+      if (data.ok && data.exercise) {
+        return data.exercise;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error loading exercise ${id}:`, error);
+      return null;
     }
   };
 
@@ -113,12 +131,10 @@ const TrainingPage: React.FC = () => {
       return;
     }
 
-    const selectedExercisesData = exercises.filter(ex => selectedExercises.includes(ex.id));
-
     const newTraining: Training = {
       id: Date.now().toString(),
       name: trainingName,
-      exercises: selectedExercisesData,
+      exerciseIds: selectedExercises,
       created_at: new Date().toISOString(),
     };
 
@@ -128,20 +144,37 @@ const TrainingPage: React.FC = () => {
     setShowCreateDialog(false);
     setTrainingName('');
     setSelectedExercises([]);
-    setSelectedTraining(newTraining);
-    setCurrentExerciseIndex(0);
-    setScore('');
-
     setNotification({
       message: `Тренировка "${trainingName}" создана!`,
       type: 'success'
     });
   };
 
-  const handleSelectTraining = (training: Training) => {
+  const handleSelectTraining = async (training: Training) => {
     setSelectedTraining(training);
     setCurrentExerciseIndex(0);
     setScore('');
+
+    setIsLoading(true);
+    const loadedExercises: Exercise[] = [];
+    
+    for (const id of training.exerciseIds) {
+      const exercise = await loadExerciseById(id);
+      if (exercise) {
+        loadedExercises.push(exercise);
+      }
+    }
+
+    setSelectedTraining({
+      ...training,
+      exercises: loadedExercises
+    });
+
+    if (loadedExercises.length > 0) {
+      setCurrentExercise(loadedExercises[0]);
+    }
+
+    setIsLoading(false);
   };
 
   const handleDeleteTraining = (trainingId: string) => {
@@ -149,6 +182,7 @@ const TrainingPage: React.FC = () => {
     saveTrainings(updatedTrainings);
     if (selectedTraining?.id === trainingId) {
       setSelectedTraining(null);
+      setCurrentExercise(null);
     }
     setNotification({
       message: 'Тренировка удалена',
@@ -157,29 +191,46 @@ const TrainingPage: React.FC = () => {
   };
 
   const nextExercise = () => {
-    if (selectedTraining && currentExerciseIndex < selectedTraining.exercises.length - 1) {
-      setCurrentExerciseIndex(currentExerciseIndex + 1);
+    if (selectedTraining?.exercises && currentExerciseIndex < selectedTraining.exercises.length - 1) {
+      const newIndex = currentExerciseIndex + 1;
+      setCurrentExerciseIndex(newIndex);
+      setCurrentExercise(selectedTraining.exercises[newIndex]);
       setScore('');
     }
   };
 
   const prevExercise = () => {
-    if (selectedTraining && currentExerciseIndex > 0) {
-      setCurrentExerciseIndex(currentExerciseIndex - 1);
+    if (selectedTraining?.exercises && currentExerciseIndex > 0) {
+      const newIndex = currentExerciseIndex - 1;
+      setCurrentExerciseIndex(newIndex);
+      setCurrentExercise(selectedTraining.exercises[newIndex]);
       setScore('');
     }
   };
 
   const completeTraining = () => {
     setNotification({
-      message: `Тренировка завершена! Финальный счет: ${score || 'не указан'}`,
+      message: `Тренировка "${selectedTraining?.name}" завершена! Счет: ${score || 'не указан'}`,
       type: 'success'
     });
-    // Можно добавить логику сохранения результата
   };
 
-  const currentExercise = selectedTraining?.exercises[currentExerciseIndex];
-  const isLastExercise = selectedTraining && currentExerciseIndex === selectedTraining.exercises.length - 1;
+  const isLastExercise = selectedTraining?.exercises && 
+    currentExerciseIndex === selectedTraining.exercises.length - 1;
+
+  const getPowerColor = (power?: number): string => {
+    if (!power) return '#666';
+    const colors: Record<number, string> = {
+      1: '#0066ff',
+      1.5: '#3385ff',
+      2: '#66a3ff',
+      2.5: '#99c2ff',
+      3: '#ffb366',
+      3.5: '#ff8533',
+      4: '#ff471a'
+    };
+    return colors[power] || '#666';
+  };
 
   return (
     <div className="app">
@@ -223,12 +274,15 @@ const TrainingPage: React.FC = () => {
                 >
                   <div className="training-card-content" onClick={() => handleSelectTraining(training)}>
                     <h3>{training.name}</h3>
-                    <p>{training.exercises.length} упражнений</p>
+                    <p>{training.exerciseIds.length} упражнений</p>
                     <small>{new Date(training.created_at).toLocaleDateString()}</small>
                   </div>
                   <button 
                     className="delete-training"
-                    onClick={() => handleDeleteTraining(training.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteTraining(training.id);
+                    }}
                   >
                     ×
                   </button>
@@ -241,123 +295,139 @@ const TrainingPage: React.FC = () => {
         <div className="training-content">
           {selectedTraining ? (
             <div className="training-viewer">
-              <div className="training-header">
-                <h2>{selectedTraining.name}</h2>
-                <div className="exercise-counter">
-                  Упражнение {currentExerciseIndex + 1} из {selectedTraining.exercises.length}
-                </div>
-              </div>
-
-              <div className="exercise-info">
-                <h3>{currentExercise?.name}</h3>
-              </div>
-
-<div className="table-container">
-  <div className="table-wrapper">
-    <div
-      className="table"
-      style={{
-        width: TABLE_WIDTH,
-        height: TABLE_HEIGHT,
-        backgroundImage: `url(${tableImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative'
-      }}
-    >
-                    
-                    {currentExercise?.layout.balls.map((ball, index) => (
-                      <div
-                        key={index}
-                        className={`ball ${ball.type}`}
-                        style={{
-                          left: ball.x * TABLE_WIDTH - BALL_RADIUS,
-                          top: ball.y * TABLE_HEIGHT - BALL_RADIUS,
-                          width: BALL_RADIUS * 2,
-                          height: BALL_RADIUS * 2,
-                        }}
-                      />
-                    ))}
-                    
-                    <svg className="lines">
-                      {currentExercise?.layout.lines.map((line, index) => (
-                        <line
-                          key={index}
-                          x1={line.from.x * TABLE_WIDTH}
-                          y1={line.from.y * TABLE_HEIGHT}
-                          x2={line.to.x * TABLE_WIDTH}
-                          y2={line.to.y * TABLE_HEIGHT}
-                          className={`line ${line.type}`}
-                        />
-                      ))}
-                    </svg>
-                  </div>
-                </div>
-              </div>
-
-              <div className="exercise-controls">
-                <div className="spin-container">
-                  <span className="spin-label">Винт</span>
-                  <div className="spin-circle small">
-                    <div className="spin-grid">
-                      <div className="grid-line horizontal"></div>
-                      <div className="grid-line vertical"></div>
+              {isLoading ? (
+                <div className="loading-state">Загрузка упражнений...</div>
+              ) : currentExercise ? (
+                <>
+                  <div className="training-header">
+                    <h2>{selectedTraining.name}</h2>
+                    <div className="exercise-counter">
+                      Упражнение {currentExerciseIndex + 1} из {selectedTraining.exercises?.length}
                     </div>
-                    <div
-                      className="spin-point"
-                      style={{
-                        left: `${(currentExercise?.layout.spin.x + 1) * 50}%`,
-                        top: `${(currentExercise?.layout.spin.y + 1) * 50}%`,
-                      }}
-                    />
                   </div>
-                  <div className="spin-coords">
-                    {currentExercise?.layout.spin.x.toFixed(2)}; {currentExercise?.layout.spin.y.toFixed(2)}
+
+                  <div className="exercise-info">
+                    <h3>{currentExercise.title}</h3>
+                    <p className="exercise-description">{currentExercise.description}</p>
                   </div>
-                </div>
 
-                <div className="power-display">
-                  <span className="power-label">Сила удара</span>
-                  <div className="power-value large">{currentExercise?.power}/5</div>
-                </div>
+                  <div className="table-container">
+                    <div className="table-wrapper" style={{               
+                        backgroundImage: `url(${tableImg})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'}}>
+                      <div
+                        className="table"
+                        style={{
+                          width: TABLE_WIDTH,
+                          height: TABLE_HEIGHT,
+                        }}
+                      >
+                        {currentExercise.position.balls.map((ball, index) => (
+                          <div
+                            key={index}
+                            className={`ball ${ball.type}`}
+                            style={{
+                              position: 'absolute',
+                              left: ball.x * TABLE_WIDTH - BALL_RADIUS,
+                              top: ball.y * TABLE_HEIGHT - BALL_RADIUS,
+                              width: BALL_RADIUS * 2,
+                              height: BALL_RADIUS * 2,
+                            }}
+                          />
+                        ))}
+                        
+                        <svg className="lines" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
+                          {currentExercise.position.lines.map((line, index) => (
+                            <line
+                              key={index}
+                              x1={line.from.x * TABLE_WIDTH}
+                              y1={line.from.y * TABLE_HEIGHT}
+                              x2={line.to.x * TABLE_WIDTH}
+                              y2={line.to.y * TABLE_HEIGHT}
+                              className={`line ${line.type}`}
+                            />
+                          ))}
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
 
-                <div className="score-input">
-                  <label>Счет</label>
-                  <input
-                    type="text"
-                    value={score}
-                    onChange={(e) => setScore(e.target.value)}
-                    placeholder="Введите счет"
-                    className="score-field"
-                  />
-                </div>
-              </div>
+                  <div className="exercise-controls">
+                    {/* Винт - отображаем только если он есть */}
+                    {currentExercise.position.spin && (
+                      <div className="spin-container">
+                        <span className="spin-label">Винт</span>
+                        <div className="spin-circle small">
+                          <div className="spin-grid">
+                            <div className="grid-line horizontal"></div>
+                            <div className="grid-line vertical"></div>
+                          </div>
+                          <div
+                            className="spin-point"
+                            style={{
+                              left: `${(currentExercise.position.spin.x + 1) * 50}%`,
+                              top: `${(currentExercise.position.spin.y + 1) * 50}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
 
-              <div className="exercise-navigation">
-                <button 
-                  onClick={prevExercise} 
-                  disabled={currentExerciseIndex === 0}
-                  className="nav-button prev"
-                >
-                  ← Предыдущее
-                </button>
-                
-                {isLastExercise ? (
-                  <button 
-                    onClick={completeTraining} 
-                    className="nav-button complete"
-                  >
-                    Завершить тренировку
-                  </button>
-                ) : (
-                  <button 
-                    onClick={nextExercise} 
-                    className="nav-button next"
-                  >
-                    Следующее →
-                  </button>
-                )}
-              </div>
+                    {/* Сила удара - отображаем только если есть */}
+                    {currentExercise.position.power && (
+                      <div className="power-display">
+                        <span className="power-label">Сила удара</span>
+                        <div 
+                          className="power-value large"
+                          style={{ color: getPowerColor(currentExercise.position.power) }}
+                        >
+                          {currentExercise.position.power}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="score-input">
+                      <label>Счет</label>
+                      <input
+                        type="text"
+                        value={score}
+                        onChange={(e) => setScore(e.target.value)}
+                        placeholder="Введите счет"
+                        className="score-field"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="exercise-navigation">
+                    <button 
+                      onClick={prevExercise} 
+                      disabled={currentExerciseIndex === 0}
+                      className="nav-button prev"
+                    >
+                      ← Предыдущее
+                    </button>
+                    
+                    {isLastExercise ? (
+                      <button 
+                        onClick={completeTraining} 
+                        className="nav-button complete"
+                      >
+                        Завершить тренировку
+                      </button>
+                    ) : (
+                      <button 
+                        onClick={nextExercise} 
+                        className="nav-button next"
+                      >
+                        Следующее →
+                      </button>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="no-exercises">В этой тренировке нет упражнений</div>
+              )}
             </div>
           ) : (
             <div className="no-training-selected">
@@ -373,7 +443,7 @@ const TrainingPage: React.FC = () => {
             <h2>Создание тренировки</h2>
             
             <div className="modal-section">
-              <label>Название тренировки</label>
+              <label>Название тренировки <span className="required">*</span></label>
               <input
                 type="text"
                 placeholder="Введите название"
@@ -418,7 +488,8 @@ const TrainingPage: React.FC = () => {
                           {selectedExercises.includes(exercise.id) && '✓'}
                         </div>
                         <div className="exercise-info">
-                          <h4>{exercise.name}</h4>
+                          <h4>{exercise.title}</h4>
+                          <p className="exercise-description-preview">{exercise.description}</p>
                         </div>
                       </div>
                     ))

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './BilliardTrainer.css';
-import tableImage from '../assets/images/table.jpg';
+import tableImg from '../assets/images/table.jpg'
 
 interface Point {
   x: number;
@@ -27,11 +27,10 @@ interface SpinPoint {
   y: number;
 }
 
-interface Exercise {
-  id: number;
-  name: string;
-  layout: {
-    spin: SpinPoint;
+interface ExerciseData {
+  title: string;
+  description: string;
+  position: {
     balls: Array<{
       x: number;
       y: number;
@@ -42,9 +41,9 @@ interface Exercise {
       to: Point;
       type: string;
     }>;
-};
-power: number;
-  created_at: string;
+    spin?: SpinPoint;
+    power?: number;
+  };
 }
 
 interface ApiResponse {
@@ -53,30 +52,49 @@ interface ApiResponse {
   error?: string;
 }
 
+type PowerValue = 1 | 1.5 | 2 | 2.5 | 3 | 3.5 | 4;
+
 const API_BASE_URL = 'http://localhost:3000';
 
 const BilliardTrainer: React.FC = () => {
   const navigate = useNavigate();
   const [balls, setBalls] = useState<Ball[]>([]);
   const [lines, setLines] = useState<Line[]>([]);
-  const [spin, setSpin] = useState<SpinPoint>({ x: 0, y: 0 });
-  const [power, setPower] = useState<number>(3);
+  const [spin, setSpin] = useState<SpinPoint | undefined>(undefined);
+  const [power, setPower] = useState<PowerValue | undefined>(undefined);
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
   const [currentMode, setCurrentMode] = useState<'solid' | 'dashed' | null>(null);
   const [currentLine, setCurrentLine] = useState<Line | null>(null);
   const [draggedBall, setDraggedBall] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [selectedElement, setSelectedElement] = useState<{ type: 'ball' | 'line'; id: string } | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
-  const [showSaveDialog, setShowSaveDialog] = useState<boolean>(false);
-  const [exerciseName, setExerciseName] = useState<string>('');
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   
   const tableRef = useRef<HTMLDivElement>(null);
   const spinCircleRef = useRef<HTMLDivElement>(null);
 
-  const TABLE_WIDTH = 900;
-  const TABLE_HEIGHT = 450;
-  const BALL_RADIUS = 14;
+  const TABLE_SCALE = 4;
+  const TABLE_WIDTH = 185 * TABLE_SCALE;
+  const TABLE_HEIGHT = 92 * TABLE_SCALE;
+  const BALL_RADIUS = (4 * TABLE_SCALE) / 2;
+
+  const powerValues: PowerValue[] = [1, 1.5, 2, 2.5, 3, 3.5, 4];
+
+  const getPowerColor = (value: PowerValue): string => {
+    const colors = {
+      1: '#0066FF',
+      1.5: '#4DA6FF',
+      2: '#80E5FF',
+      2.5: '#00CC99',
+      3: '#99FF99',
+      3.5: '#FFA64D',
+      4: '#FF4D4D'
+    };
+    return colors[value];
+  };
 
   useEffect(() => {
     if (notification) {
@@ -125,6 +143,23 @@ const BilliardTrainer: React.FC = () => {
     };
   }, [isDragging, draggedBall, dragOffset]);
 
+  // Удаление выбранного элемента
+  const deleteSelectedElement = () => {
+    if (!selectedElement) return;
+
+    if (selectedElement.type === 'ball') {
+      setBalls(balls.filter(b => b.id !== selectedElement.id));
+    } else if (selectedElement.type === 'line') {
+      setLines(lines.filter(l => l.id !== selectedElement.id));
+    }
+
+    setSelectedElement(null);
+    setNotification({
+      message: 'Элемент удален',
+      type: 'success'
+    });
+  };
+
   const addBall = (type: 'solid' | 'dashed') => {
     const newBall: Ball = {
       id: `ball_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -137,6 +172,7 @@ const BilliardTrainer: React.FC = () => {
 
   const setMode = (mode: 'solid' | 'dashed') => {
     setCurrentMode(mode);
+    setSelectedElement(null);
   };
 
   const handleTableMouseDown = (e: React.MouseEvent) => {
@@ -154,6 +190,7 @@ const BilliardTrainer: React.FC = () => {
     };
     
     setCurrentLine(newLine);
+    setSelectedElement(null);
   };
 
   const handleTableMouseMove = (e: React.MouseEvent) => {
@@ -190,6 +227,12 @@ const BilliardTrainer: React.FC = () => {
     setDraggedBall(ballId);
     setDragOffset({ x: offsetX, y: offsetY });
     setIsDragging(true);
+    setSelectedElement({ type: 'ball', id: ballId });
+  };
+
+  const handleLineClick = (lineId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedElement({ type: 'line', id: lineId });
   };
 
   const handleSpinClick = (e: React.MouseEvent) => {
@@ -200,32 +243,24 @@ const BilliardTrainer: React.FC = () => {
     const centerY = rect.height / 2;
     const radius = rect.width / 2;
     
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
+    const clickX = e.clientX - rect.left - centerX;
+    const clickY = e.clientY - rect.top - centerY;
     
-    const normalizedX = (clickX - centerX) / radius;
-    const normalizedY = (clickY - centerY) / radius;
+    const normalizedX = Number((clickX / radius).toFixed(2));
+    const normalizedY = Number((clickY / radius).toFixed(2));
     
     const distance = Math.sqrt(normalizedX * normalizedX + normalizedY * normalizedY);
     if (distance <= 1) {
-      setSpin({ x: Number(normalizedX.toFixed(2)), y: Number(normalizedY.toFixed(2)) });
+      setSpin({ x: normalizedX, y: normalizedY });
     }
   };
 
-  const handleSaveClick = () => {
-    if (balls.length === 0 && lines.length === 0) {
-      setNotification({
-        message: 'Добавьте хотя бы один шар или линию',
-        type: 'error'
-      });
-      return;
-    }
-    setShowSaveDialog(true);
-    setExerciseName('');
+  const clearSpin = () => {
+    setSpin(undefined);
   };
 
   const saveExercise = async () => {
-    if (!exerciseName.trim()) {
+    if (!title.trim()) {
       setNotification({
         message: 'Введите название упражнения',
         type: 'error'
@@ -233,16 +268,20 @@ const BilliardTrainer: React.FC = () => {
       return;
     }
 
-    setIsSaving(true);
-    setShowSaveDialog(false);
+    if (!description.trim()) {
+      setNotification({
+        message: 'Введите описание упражнения',
+        type: 'error'
+      });
+      return;
+    }
 
-    const exerciseData = {
-      name: exerciseName,
-      layout: {
-        spin: {
-          x: spin.x,
-          y: spin.y,
-        },
+    setIsSaving(true);
+
+    const exerciseData: ExerciseData = {
+      title: title,
+      description: description,
+      position: {
         balls: balls.map(ball => ({
           x: Number((ball.x / TABLE_WIDTH).toFixed(3)),
           y: Number((ball.y / TABLE_HEIGHT).toFixed(3)),
@@ -259,12 +298,19 @@ const BilliardTrainer: React.FC = () => {
           },
           type: line.type,
         })),
-    },
-    power: power,
+      },
     };
 
+    if (spin) {
+      exerciseData.position.spin = spin;
+    }
+
+    if (power) {
+      exerciseData.position.power = power;
+    }
+
     try {
-      const response = await fetch(`${API_BASE_URL}/positions`, {
+      const response = await fetch(`${API_BASE_URL}/exercises`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -280,20 +326,21 @@ const BilliardTrainer: React.FC = () => {
       
       if (result.ok) {
         setNotification({ 
-          message: `Упражнение "${exerciseName}" сохранено!`, 
+          message: `Упражнение "${title}" сохранено! ID: ${result.id}`, 
           type: 'success' 
         });
-        // Очищаем форму после сохранения
         setBalls([]);
         setLines([]);
-        setSpin({ x: 0, y: 0 });
-        setPower(3);
+        setSpin(undefined);
+        setPower(undefined);
+        setTitle('');
+        setDescription('');
         setCurrentMode(null);
+        setSelectedElement(null);
       }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
       setNotification({ 
-        message: 'Ошибка сохранения', 
+        message: error instanceof Error ? error.message : 'Ошибка сохранения', 
         type: 'error' 
       });
     } finally {
@@ -302,11 +349,24 @@ const BilliardTrainer: React.FC = () => {
   };
 
   const clearAll = () => {
-    setBalls([]);
-    setLines([]);
-    setSpin({ x: 0, y: 0 });
-    setPower(3);
-    setCurrentMode(null);
+    if (balls.length === 0 && lines.length === 0) {
+      setTitle('');
+      setDescription('');
+      setSpin(undefined);
+      setPower(undefined);
+      setCurrentMode(null);
+      setSelectedElement(null);
+      return;
+    }
+
+    if (window.confirm('Очистить всё?')) {
+      setBalls([]);
+      setLines([]);
+      setSpin(undefined);
+      setPower(undefined);
+      setCurrentMode(null);
+      setSelectedElement(null);
+    }
   };
 
   return (
@@ -329,13 +389,32 @@ const BilliardTrainer: React.FC = () => {
             </button>
           </nav>
         </div>
-        <button onClick={handleSaveClick} disabled={isSaving} className="save-button">
-          {isSaving ? 'Сохранение...' : 'Сохранить упражнение'}
-        </button>
       </header>
 
       <div className="main">
         <div className="sidebar">
+          <div className="section">
+            <h3>Название упражнения <span className="required">*</span></h3>
+            <input
+              type="text"
+              placeholder="Введите название"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-input"
+            />
+          </div>
+
+          <div className="section">
+            <h3>Описание <span className="required">*</span></h3>
+            <textarea
+              placeholder="Введите описание"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              className="text-input textarea"
+              rows={3}
+            />
+          </div>
+
           <div className="section">
             <h3>Шары</h3>
             <div className="button-group">
@@ -376,18 +455,29 @@ const BilliardTrainer: React.FC = () => {
           </div>
 
           <div className="section">
-            <h3>Сила удара</h3>
-            <div className="power-slider">
-              <input
-                type="range"
-                min="1"
-                max="5"
-                value={power}
-                onChange={(e) => setPower(Number(e.target.value))}
-                className="slider"
-              />
-              <div className="power-value">{power}/5</div>
+            <h3>Сила удара {power !== undefined && `: ${power}`}</h3>
+            <div className="power-buttons-grid">
+              {powerValues.map(value => (
+                <button
+                  key={value}
+                  onClick={() => setPower(power === value ? undefined : value)}
+                  className={`power-button ${power === value ? 'selected' : ''}`}
+                  style={{
+                    backgroundColor: getPowerColor(value),
+                    color: value >= 3 ? '#333' : 'white',
+                    border: power === value ? '2px solid #333' : 'none',
+                    opacity: power === value ? 1 : 0.8,
+                  }}
+                >
+                  {value}
+                </button>
+              ))}
             </div>
+            {power !== undefined && (
+              <button onClick={() => setPower(undefined)} className="clear-small-button" style={{backgroundColor : "#007AFF", color : "white"}}>
+                Сбросить силу
+              </button>
+            )}
           </div>
 
           <div className="section">
@@ -402,61 +492,81 @@ const BilliardTrainer: React.FC = () => {
                   <div className="grid-line horizontal"></div>
                   <div className="grid-line vertical"></div>
                 </div>
-                <div
-                  className="spin-point"
-                  style={{
-                    left: `${(spin.x + 1) * 50}%`,
-                    top: `${(spin.y + 1) * 50}%`,
-                  }}
-                />
+                {spin && (
+                  <div
+                    className="spin-point"
+                    style={{
+                      left: `${(spin.x + 1) * 50}%`,
+                      top: `${(spin.y + 1) * 50}%`,
+                    }}
+                  />
+                )}
               </div>
-              <div className="spin-coords">
-                {spin.x.toFixed(2)}; {spin.y.toFixed(2)}
-              </div>
+              {spin && (
+                <button onClick={clearSpin} className="clear-small-button" style={{backgroundColor : "#007AFF", color : "white"}}>
+                  Сбросить винт
+                </button>
+              )}
             </div>
           </div>
 
-          <button onClick={clearAll} className="clear-button">
-            Очистить всё
-          </button>
+          {selectedElement && (
+            <div className="selected-element-actions">
+              <p>Выбран {selectedElement.type === 'ball' ? 'шар' : 'линия'}</p>
+              <button onClick={deleteSelectedElement} className="delete-element-button">
+                🗑️ Удалить элемент
+              </button>
+            </div>
+          )}
+
+          <div className="action-buttons">
+            <button onClick={clearAll} className="clear-button" style={{backgroundColor : "#007AFF", color : "white", fontWeight : "600"}}>
+              Очистить
+            </button>
+            <button 
+              onClick={saveExercise} 
+              disabled={isSaving || !title.trim() || !description.trim()}
+              className="save-button"
+            >
+              {isSaving ? 'Сохранение...' : 'Сохранить упражнение'}
+            </button>
+          </div>
         </div>
 
-<div className="table-container">
-  <div className="table-wrapper">
-    <div
-      ref={tableRef}
-      className="table"
-      style={{
-        width: TABLE_WIDTH,
-        height: TABLE_HEIGHT,
-        backgroundImage: `url(${tableImage})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        position: 'relative'
-      }}
-      onMouseDown={handleTableMouseDown}
-      onMouseMove={handleTableMouseMove}
-      onMouseUp={handleTableMouseUp}
-      onMouseLeave={handleTableMouseUp}
-    >
-              
-
-              
+        <div className="content">
+          <div className="table-wrapper" style={{               
+                backgroundImage: `url(${tableImg})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center'}}>
+            <div
+              ref={tableRef}
+              className="table"
+              style={{
+                width: TABLE_WIDTH,
+                height: TABLE_HEIGHT,
+              }}
+              onMouseDown={handleTableMouseDown}
+              onMouseMove={handleTableMouseMove}
+              onMouseUp={handleTableMouseUp}
+              onMouseLeave={handleTableMouseUp}
+            >
               {balls.map(ball => (
                 <div
                   key={ball.id}
-                  className={`ball ${ball.type} ${draggedBall === ball.id ? 'dragging' : ''}`}
+                  className={`ball ${ball.type} ${draggedBall === ball.id ? 'dragging' : ''} ${selectedElement?.type === 'ball' && selectedElement.id === ball.id ? 'selected' : ''}`}
                   style={{
+                    position: 'absolute',
                     left: ball.x - BALL_RADIUS,
                     top: ball.y - BALL_RADIUS,
                     width: BALL_RADIUS * 2,
                     height: BALL_RADIUS * 2,
+                    zIndex: draggedBall === ball.id ? 100 : 10
                   }}
                   onMouseDown={(e) => handleBallMouseDown(e, ball.id)}
                 />
               ))}
               
-              <svg className="lines">
+              <svg className="lines" style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
                 {lines.map(line => (
                   <line
                     key={line.id}
@@ -464,7 +574,9 @@ const BilliardTrainer: React.FC = () => {
                     y1={line.from.y}
                     x2={line.to.x}
                     y2={line.to.y}
-                    className={`line ${line.type}`}
+                    className={`line ${line.type} ${selectedElement?.type === 'line' && selectedElement.id === line.id ? 'selected' : ''}`}
+                    onClick={(e) => handleLineClick(line.id, e)}
+                    style={{ pointerEvents: 'auto', cursor: 'pointer' }}
                   />
                 ))}
                 
@@ -482,30 +594,6 @@ const BilliardTrainer: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {showSaveDialog && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <h2>Сохранение упражнения</h2>
-            <input
-              type="text"
-              placeholder="Введите название упражнения"
-              value={exerciseName}
-              onChange={(e) => setExerciseName(e.target.value)}
-              className="modal-input"
-              autoFocus
-            />
-            <div className="modal-actions">
-              <button onClick={() => setShowSaveDialog(false)} className="modal-button cancel">
-                Отмена
-              </button>
-              <button onClick={saveExercise} className="modal-button confirm">
-                Сохранить
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {notification && (
         <div className={`notification ${notification.type}`}>
